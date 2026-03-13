@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ffffff">
+    <title>AWE 2026 技术图谱</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #ffffff;
+            color: #1a1a1a;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        
+        /* 顶部导航 */
+        .header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            height: 56px;
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            z-index: 100;
+        }
+        .header h1 { font-size: 18px; font-weight: 600; }
+        .header-actions { display: flex; gap: 12px; }
+        .icon-btn {
+            width: 36px; height: 36px;
+            border: none;
+            background: #f5f5f5;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* 图谱容器 */
+        #graph-container {
+            position: fixed;
+            top: 56px; left: 0; right: 0; bottom: 180px;
+            background: #fafafa;
+            overflow: hidden;
+        }
+        
+        /* 语音录入区 */
+        .voice-panel {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            height: 180px;
+            background: #ffffff;
+            border-top: 1px solid #f0f0f0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .voice-btn {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            background: #ff4d4f;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(255,77,79,0.3);
+            transition: transform 0.1s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .voice-btn:active { transform: scale(0.95); }
+        .voice-btn.recording {
+            animation: pulse 1.5s infinite;
+            background: #ff7875;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255,77,79,0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(255,77,79,0); }
+            100% { box-shadow: 0 0 0 0 rgba(255,77,79,0); }
+        }
+        
+        .voice-hint {
+            margin-top: 12px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        /* 转写预览模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 200;
+            align-items: flex-end;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-height: 70vh;
+            border-radius: 20px 20px 0 0;
+            padding: 24px;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .transcript-box {
+            background: #f5f5f5;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 16px;
+            min-height: 60px;
+        }
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .tag {
+            background: #e6f7ff;
+            color: #1890ff;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            border: 1px solid #91d5ff;
+        }
+        .tag.loading { opacity: 0.6; }
+        .photos-preview {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        .photo-thumb {
+            width: 80px; height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            border: 2px solid #f0f0f0;
+        }
+        .action-btns {
+            display: flex;
+            gap: 12px;
+        }
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 10px;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .btn-primary { background: #1a1a1a; color: white; }
+        .btn-secondary { background: #f5f5f5; color: #666; }
+        
+        /* 设置面板 */
+        .settings {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: white;
+            z-index: 300;
+            padding: 20px;
+        }
+        .settings.active { display: block; }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #d9d9d9;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        /* 节点详情侧边栏 */
+        .sidebar {
+            position: fixed;
+            top: 0; right: -100%;
+            width: 85%;
+            max-width: 400px;
+            height: 100%;
+            background: white;
+            box-shadow: -2px 0 8px rgba(0,0,0,0.1);
+            z-index: 150;
+            transition: right 0.3s;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .sidebar.active { right: 0; }
+    </style>
+</head>
+<body>
+
+    <!-- 头部 -->
+    <div class="header">
+        <h1>AWE 2026 技术图谱</h1>
+        <div class="header-actions">
+            <button class="icon-btn" onclick="toggleSettings()">⚙️</button>
+            <button class="icon-btn" onclick="exportData()">📤</button>
+        </div>
+    </div>
+
+    <!-- 图谱容器 -->
+    <div id="graph-container">
+        <svg id="graph-svg" width="100%" height="100%"></svg>
+    </div>
+
+    <!-- 语音面板 -->
+    <div class="voice-panel">
+        <button class="voice-btn" id="voiceBtn" ontouchstart="startRecording()" onmousedown="startRecording()" ontouchend="stopRecording()" onmouseup="stopRecording()">
+            🎤
+        </button>
+        <div class="voice-hint">按住说话，自动提取技术标签</div>
+    </div>
+
+    <!-- 转写确认模态框 -->
+    <div class="modal" id="confirmModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>确认录入</h3>
+                <button onclick="closeModal()" style="background:none;border:none;font-size:20px;">✕</button>
+            </div>
+            <div class="transcript-box" id="transcriptText">正在转写...</div>
+            <div class="tags-container" id="tagsContainer"></div>
+            <div class="photos-preview" id="photosPreview"></div>
+            <div class="action-btns">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveNode()">保存到图谱</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 设置面板 -->
+    <div class="settings" id="settingsPanel">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;">
+            <h2>设置</h2>
+            <button onclick="toggleSettings()" style="background:none;border:none;font-size:24px;">✕</button>
+        </div>
+        <div class="input-group">
+            <label>DeepSeek API Key</label>
+            <input type="password" id="apiKey" placeholder="sk-..." onchange="saveSettings()">
+            <small style="color:#999;display:block;margin-top:4px;">仅保存在本地浏览器</small>
+        </div>
+        <div class="input-group">
+            <label>代理地址（可选）</label>
+            <input type="text" id="proxyUrl" placeholder="https://your-worker.workers.dev" onchange="saveSettings()">
+            <small style="color:#999;display:block;margin-top:4px;">默认使用公共代理</small>
+        </div>
+        <div class="input-group">
+            <label>用户标识</label>
+            <input type="text" id="userId" placeholder="AWE2026-User" onchange="saveSettings()">
+        </div>
+        <button class="btn btn-primary" onclick="toggleSettings()" style="margin-top:20px;">保存并关闭</button>
+    </div>
+
+    <!-- 节点详情侧边栏 -->
+    <div class="sidebar" id="nodeSidebar">
+        <!-- 动态填充 -->
+    </div>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        // 全局状态
+        let nodes = JSON.parse(localStorage.getItem('awe_nodes') || '[]');
+        let links = JSON.parse(localStorage.getItem('awe_links') || '[]');
+        let currentRecording = null;
+        let currentTranscript = '';
+        let currentTags = [];
+        let recognition = null;
+        
+        // 初始化语音识别
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'zh-CN';
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    }
+                }
+                if (finalTranscript) {
+                    currentTranscript = finalTranscript;
+                    document.getElementById('transcriptText').textContent = currentTranscript;
+                    extractTags(currentTranscript);
+                }
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('语音识别错误:', event.error);
+                alert('语音识别失败，请检查麦克风权限');
+            };
+        } else {
+            alert('您的浏览器不支持语音识别，请使用Chrome或Safari');
+        }
+
+        // 初始化图谱
+        function initGraph() {
+            const svg = d3.select("#graph-svg");
+            const width = svg.node().parentNode.clientWidth;
+            const height = svg.node().parentNode.clientHeight;
+            
+            // 如果本地没有数据，加载示例数据
+            if (nodes.length === 0) {
+                loadSampleData();
+            }
+            
+            updateGraph();
+        }
+
+        function loadSampleData() {
+            // 预置AWE 2026核心节点
+            nodes = [
+                {id: "海尔", group: 1, level: 4, label: "海尔智家", type: "company"},
+                {id: "华为", group: 1, level: 3, label: "华为鸿蒙智家", type: "company"},
+                {id: "UWB雷达", group: 2, level: 4, label: "UWB超宽带雷达", type: "tech"},
+                {id: "磁控保鲜", group: 2, level: 4, label: "磁控保鲜技术", type: "tech", military: "潜艇食品保障"},
+                {id: "MSA氮氧", group: 2, level: 4, label: "MSA氮氧智控", type: "tech"},
+                {id: "Seeker", group: 3, level: 5, label: "Seeker观赛剧场", type: "scene"},
+                {id: "聆思", group: 4, level: 2, label: "聆思科技", type: "company"},
+                {id: "移远", group: 4, level: 2, label: "移远通信", type: "company"}
+            ];
+            
+            links = [
+                {source: "海尔", target: "UWB雷达"},
+                {source: "海尔", target: "磁控保鲜"},
+                {source: "海尔", target: "MSA氮氧"},
+                {source: "海尔", target: "Seeker"},
+                {source: "UWB雷达", target: "Seeker"},
+                {source: "磁控保鲜", target: "MSA氮氧"},
+                {source: "聆思", target: "UWB雷达"},
+                {source: "移远", target: "UWB雷达"}
+            ];
+            
+            saveData();
+        }
+
+        function updateGraph() {
+            const svg = d3.select("#graph-svg");
+            svg.selectAll("*").remove();
+            
+            const width = svg.node().parentNode.clientWidth;
+            const height = svg.node().parentNode.clientHeight;
+            
+            const simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links).id(d => d.id).distance(100))
+                .force("charge", d3.forceManyBody().strength(-300))
+                .force("center", d3.forceCenter(width / 2, height / 2))
+                .force("collision", d3.forceCollide().radius(40));
+            
+            // 绘制连线
+            const link = svg.append("g")
+                .selectAll("line")
+                .data(links)
+                .enter().append("line")
+                .attr("stroke", "#999")
+                .attr("stroke-opacity", 0.6)
+                .attr("stroke-width", 1);
+            
+            // 绘制节点
+            const node = svg.append("g")
+                .selectAll("g")
+                .data(nodes)
+                .enter().append("g")
+                .call(d3.drag()
+                    .on("start", dragstarted)
+                    .on("drag", dragged)
+                    .on("end", dragended))
+                .on("click", (event, d) => showNodeDetail(d));
+            
+            // 节点圆圈
+            node.append("circle")
+                .attr("r", d => d.type === 'company' ? 25 : 20)
+                .attr("fill", d => {
+                    if (d.group === 1) return "#1890ff"; // 蓝色-整机
+                    if (d.group === 2) return "#52c41a"; // 绿色-技术
+                    if (d.group === 4) return "#722ed1"; // 紫色-芯片
+                    return "#fa8c16";
+                })
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 2);
+            
+            // 节点文字
+            node.append("text")
+                .text(d => d.label)
+                .attr("text-anchor", "middle")
+                .attr("dy", 35)
+                .attr("font-size", "12px")
+                .attr("fill", "#333");
+            
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+                
+                node.attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+            
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+            
+            function dragged(event, d) {
+                d.fx = event.x;
+                d.fy = event.y;
+            }
+            
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+        }
+
+        // 语音录入控制
+        function startRecording() {
+            if (!recognition) return;
+            currentTranscript = '';
+            currentTags = [];
+            document.getElementById('voiceBtn').classList.add('recording');
+            recognition.start();
+        }
+
+        function stopRecording() {
+            if (!recognition) return;
+            document.getElementById('voiceBtn').classList.remove('recording');
+            recognition.stop();
+            
+            setTimeout(() => {
+                if (currentTranscript) {
+                    showConfirmModal();
+                }
+            }, 500);
+        }
+
+        function showConfirmModal() {
+            document.getElementById('transcriptText').textContent = currentTranscript;
+            document.getElementById('confirmModal').classList.add('active');
+            document.getElementById('tagsContainer').innerHTML = '<div class="tag loading">AI分析中...</div>';
+            
+            // 提取最近照片（模拟）
+            loadRecentPhotos();
+            
+            // 调用DeepSeek提取标签
+            extractTags(currentTranscript);
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').classList.remove('active');
+        }
+
+        // DeepSeek API调用
+        async function extractTags(text) {
+            const apiKey = localStorage.getItem('deepseek_api_key');
+            const proxyUrl = localStorage.getItem('proxy_url') || 'https://awe2026-proxy.yourusername.workers.dev';
+            
+            if (!apiKey) {
+                document.getElementById('tagsContainer').innerHTML = 
+                    '<div class="tag" style="background:#ff4d4f;color:white">请先设置API Key</div>';
+                return;
+            }
+            
+            const systemPrompt = `你是一个AWE 2026家电展的技术标签提取助手。从用户输入中提取技术实体，按以下规则返回JSON数组：
+1. 识别企业名称：[[海尔]], [[华为]], [[聆思科技]], [[移远通信]], [[Realtek]], [[绿联]], [[影石]], [[元点智能]], [[奕斯伟]]等
+2. 识别技术层级：[[Level 1 材料]], [[Level 2 芯片]], [[Level 3 组网]], [[Level 4 整机]], [[Level 5 场景]]
+3. 识别具体技术：[[UWB雷达]], [[毫米波雷达]], [[磁控保鲜]], [[MSA氮氧智控]], [[PLC]], [[WiFi 7]], [[星闪]], [[RISC-V]], [[DeepSeek]], [[AI NAS]]等
+4. 识别军转民技术：如果有军用背景，添加 [[军转民]] 并注明来源（如"潜艇食品保障"）
+5. 识别信息流阶段：[[Stage 1 采集]], [[Stage 2 传输]], [[Stage 3 计算]], [[Stage 4 执行]]
+
+只返回JSON数组格式，例如：["[[海尔]]", "[[Level 4 整机]]", "[[UWB雷达]]", "[[军转民]]"]`;
+
+            try {
+                const response = await fetch(proxyUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        api_key: apiKey,
+                        model: "deepseek-chat",
+                        messages: [
+                            { role: "system", content: systemPrompt },
+                            { role: "user", content: text }
+                        ],
+                        temperature: 0.3
+                    })
+                });
+                
+                const data = await response.json();
+                let tags = [];
+                
+                if (data.choices && data.choices[0].message.content) {
+                    try {
+                        const content = data.choices[0].message.content;
+                        // 尝试解析JSON
+                        const jsonMatch = content.match(/\[.*\]/);
+                        if (jsonMatch) {
+                            tags = JSON.parse(jsonMatch[0]);
+                        } else {
+                            //  Fallback：按行分割
+                            tags = content.split('\n').filter(t => t.includes('[['));
+                        }
+                    } catch (e) {
+                        console.error('解析失败:', e);
+                    }
+                }
+                
+                currentTags = tags;
+                renderTags(tags);
+                
+            } catch (error) {
+                console.error('API调用失败:', error);
+                // 本地规则fallback
+                const localTags = localExtractTags(text);
+                currentTags = localTags;
+                renderTags(localTags);
+            }
+        }
+
+        // 本地规则引擎（Fallback）
+        function localExtractTags(text) {
+            const tags = [];
+            const keywords = {
+                '海尔': '[[海尔]]',
+                '华为': '[[华为]]',
+                'UWB': '[[UWB雷达]]',
+                '雷达': '[[毫米波雷达]]',
+                '磁控': '[[磁控保鲜]]',
+                'MSA': '[[MSA氮氧智控]]',
+                '氮氧': '[[MSA氮氧智控]]',
+                '保鲜': '[[磁控保鲜]]',
+                'Seeker': '[[Seeker]]',
+                '观赛': '[[Seeker]]',
+                '聆思': '[[聆思科技]]',
+                '移远': '[[移远通信]]',
+                '绿联': '[[绿联]]',
+                'NAS': '[[AI NAS]]',
+                '芯片': '[[Level 2 芯片]]',
+                '冰箱': '[[Level 4 整机]]',
+                '空调': '[[Level 4 整机]]'
+            };
+            
+            for (let [key, tag] of Object.entries(keywords)) {
+                if (text.includes(key) && !tags.includes(tag)) {
+                    tags.push(tag);
+                }
+            }
+            
+            if (text.includes('潜艇') || text.includes('航天') || text.includes('军用')) {
+                tags.push('[[军转民]]');
+            }
+            
+            return tags;
+        }
+
+        function renderTags(tags) {
+            const container = document.getElementById('tagsContainer');
+            if (tags.length === 0) {
+                container.innerHTML = '<div class="tag" style="background:#f5f5f5;color:#999">未识别到标签</div>';
+                return;
+            }
+            container.innerHTML = tags.map(tag => 
+                `<div class="tag">${tag.replace(/\[\[|\]\]/g, '')}</div>`
+            ).join('');
+        }
+
+        function loadRecentPhotos() {
+            // 模拟最近照片（实际应访问相册API或用户手动选择）
+            const container = document.getElementById('photosPreview');
+            container.innerHTML = '<div style="color:#999;font-size:14px;">提示：保存后可手动关联照片</div>';
+        }
+
+        function saveNode() {
+            const nodeId = 'node_' + Date.now();
+            const newNode = {
+                id: nodeId,
+                label: currentTranscript.substring(0, 20) + '...',
+                content: currentTranscript,
+                tags: currentTags,
+                timestamp: new Date().toISOString(),
+                group: 5, // 用户录入
+                level: 4
+            };
+            
+            nodes.push(newNode);
+            
+            // 自动建立链接（根据标签关联现有节点）
+            currentTags.forEach(tag => {
+                const cleanTag = tag.replace(/\[\[|\]\]/g, '');
+                const existingNode = nodes.find(n => n.label === cleanTag || n.id === cleanTag);
+                if (existingNode && existingNode.id !== nodeId) {
+                    links.push({ source: nodeId, target: existingNode.id });
+                }
+            });
+            
+            saveData();
+            updateGraph();
+            closeModal();
+            
+            // 震动反馈
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+
+        function saveData() {
+            localStorage.setItem('awe_nodes', JSON.stringify(nodes));
+            localStorage.setItem('awe_links', JSON.stringify(links));
+        }
+
+        function showNodeDetail(d) {
+            const sidebar = document.getElementById('nodeSidebar');
+            sidebar.innerHTML = `
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+                    <h2>${d.label}</h2>
+                    <button onclick="document.getElementById('nodeSidebar').classList.remove('active')" style="background:none;border:none;font-size:24px;">✕</button>
+                </div>
+                <div style="background:#f5f5f5;padding:16px;border-radius:8px;margin-bottom:16px;">
+                    <div style="font-size:12px;color:#666;margin-bottom:4px;">类型</div>
+                    <div>${d.type || '未知'}</div>
+                </div>
+                <div style="background:#f5f5f5;padding:16px;border-radius:8px;margin-bottom:16px;">
+                    <div style="font-size:12px;color:#666;margin-bottom:4px;">技术层级</div>
+                    <div>Level ${d.level}</div>
+                </div>
+                ${d.military ? `
+                <div style="background:#fff2e8;padding:16px;border-radius:8px;margin-bottom:16px;border:1px solid #ffbb96;">
+                    <div style="font-size:12px;color:#fa8c16;margin-bottom:4px;">军转民来源</div>
+                    <div>${d.military}</div>
+                </div>
+                ` : ''}
+                ${d.content ? `
+                <div style="margin-top:20px;">
+                    <div style="font-size:12px;color:#666;margin-bottom:8px;">原始记录</div>
+                    <div style="background:#f5f5f5;padding:12px;border-radius:8px;font-size:14px;">${d.content}</div>
+                </div>
+                ` : ''}
+            `;
+            sidebar.classList.add('active');
+        }
+
+        function toggleSettings() {
+            document.getElementById('settingsPanel').classList.toggle('active');
+        }
+
+        function saveSettings() {
+            const apiKey = document.getElementById('apiKey').value;
+            const proxyUrl = document.getElementById('proxyUrl').value;
+            const userId = document.getElementById('userId').value;
+            
+            if (apiKey) localStorage.setItem('deepseek_api_key', apiKey);
+            if (proxyUrl) localStorage.setItem('proxy_url', proxyUrl);
+            if (userId) localStorage.setItem('user_id', userId);
+        }
+
+        function exportData() {
+            const data = {
+                nodes: nodes,
+                links: links,
+                export_time: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `AWE2026_data_${Date.now()}.json`;
+            a.click();
+        }
+
+        // 初始化
+        window.onload = function() {
+            initGraph();
+            
+            // 加载设置
+            const savedKey = localStorage.getItem('deepseek_api_key');
+            const savedProxy = localStorage.getItem('proxy_url');
+            if (savedKey) document.getElementById('apiKey').value = savedKey;
+            if (savedProxy) document.getElementById('proxyUrl').value = savedProxy;
+        };
+
+        // PWA注册
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('data:text/javascript,').catch(() => {
+                // 简化处理，实际应创建sw.js文件
+            });
+        }
+    </script>
+</body>
+</html>
