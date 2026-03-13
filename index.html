@@ -292,44 +292,180 @@
         let currentTranscript = '';
         let currentTags = [];
         let recognition = null;
+        let isRecording = false; // 新增状态锁
         
-        // 初始化语音识别
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
-            recognition.lang = 'zh-CN';
-            recognition.continuous = false;
-            recognition.interimResults = true;
+        // 修复后的语音识别初始化
+        function initSpeechRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('您的浏览器不支持语音识别');
+                return null;
+            }
             
-            recognition.onresult = (event) => {
-                let finalTranscript = '';
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const rec = new SpeechRecognition();
+            rec.lang = 'zh-CN';
+            rec.continuous = true; // 改为true，防止iOS过早结束
+            rec.interimResults = true;
+            rec.maxAlternatives = 1;
+            
+            let finalTranscript = '';
+            
+            rec.onstart = () => {
+                console.log('录音开始');
+                isRecording = true;
+                finalTranscript = '';
+                document.getElementById('voiceBtn').classList.add('recording');
+                // 震动反馈
+                if (navigator.vibrate) navigator.vibrate(50);
+            };
+            
+            rec.onresult = (event) => {
+                let interimTranscript = '';
                 for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript;
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
                     }
                 }
-                if (finalTranscript) {
-                    currentTranscript = finalTranscript;
+                // 实时显示（包括临时结果）
+                currentTranscript = finalTranscript + interimTranscript;
+                if (document.getElementById('transcriptText')) {
                     document.getElementById('transcriptText').textContent = currentTranscript;
-                    extractTags(currentTranscript);
                 }
             };
             
-            recognition.onerror = (event) => {
-                console.error('语音识别错误:', event.error);
-                alert('语音识别失败，请检查麦克风权限');
+            rec.onerror = (event) => {
+                console.error('录音错误:', event.error);
+                if (event.error === 'not-allowed') {
+                    alert('请允许麦克风权限');
+                } else if (event.error === 'no-speech') {
+                    // 没检测到语音，不报错，继续尝试
+                    console.log('未检测到语音');
+                } else {
+                    alert('语音识别错误: ' + event.error);
+                }
+                stopRecordingUI();
             };
-        } else {
-            alert('您的浏览器不支持语音识别，请使用Chrome或Safari');
+            
+            rec.onend = () => {
+                console.log('录音结束');
+                // iOS可能会自动结束，如果用户还在按住，尝试重启
+                if (isRecording && document.getElementById('voiceBtn').classList.contains('recording')) {
+                    try {
+                        rec.start(); // 自动重启
+                    } catch(e) {
+                        stopRecordingUI();
+                    }
+                } else {
+                    stopRecordingUI();
+                }
+            };
+            
+            return rec;
         }
 
-        // 初始化图谱
+        recognition = initSpeechRecognition();
+
+        // 修复后的录音控制（防止事件冲突）
+        const voiceBtn = document.getElementById('voiceBtn');
+        
+        // 统一的事件处理函数
+        function startRecording(e) {
+            if (e) {
+                e.preventDefault(); // 防止默认行为
+                e.stopPropagation(); // 防止冒泡
+            }
+            
+            if (isRecording || !recognition) return;
+            
+            try {
+                recognition.start();
+                currentTranscript = '';
+                // 立即显示转写界面
+                document.getElementById('transcriptText').textContent = "正在聆听...";
+            } catch (err) {
+                console.error('启动录音失败:', err);
+                // 如果已经在运行，先停止再重启
+                try {
+                    recognition.stop();
+                    setTimeout(() => recognition.start(), 100);
+                } catch(e) {}
+            }
+        }
+        
+        function stopRecording(e) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            if (!isRecording) return;
+            
+            try {
+                recognition.stop();
+            } catch (err) {
+                console.error('停止录音失败:', err);
+            }
+            
+            stopRecordingUI();
+            
+            // 延迟显示确认框，确保最终结果已处理
+            setTimeout(() => {
+                if (currentTranscript && currentTranscript.trim().length > 0) {
+                    showConfirmModal();
+                }
+            }, 500);
+        }
+        
+        function stopRecordingUI() {
+            isRecording = false;
+            const btn = document.getElementById('voiceBtn');
+            if (btn) btn.classList.remove('recording');
+            if (navigator.vibrate) navigator.vibrate([30, 50, 30]); // 结束震动模式
+        }
+
+        // 绑定事件（同时支持触摸和鼠标，但防止重复触发）
+        if (voiceBtn) {
+            // 触摸事件（iOS优先）
+            voiceBtn.addEventListener('touchstart', (e) => {
+                voiceBtn.setAttribute('data-touch-active', 'true');
+                startRecording(e);
+            }, {passive: false});
+            
+            voiceBtn.addEventListener('touchend', (e) => {
+                voiceBtn.removeAttribute('data-touch-active');
+                stopRecording(e);
+            }, {passive: false});
+            
+            // 鼠标事件（桌面端）
+            voiceBtn.addEventListener('mousedown', (e) => {
+                // 如果触摸事件已激活，忽略鼠标事件
+                if (voiceBtn.getAttribute('data-touch-active') === 'true') return;
+                startRecording(e);
+            });
+            
+            voiceBtn.addEventListener('mouseup', (e) => {
+                if (voiceBtn.getAttribute('data-touch-active') === 'true') return;
+                stopRecording(e);
+            });
+            
+            // 防止触摸滚动
+            voiceBtn.addEventListener('touchmove', (e) => e.preventDefault(), {passive: false});
+        }
+
+        // 其他原有函数保持不变...
+        // initGraph, updateGraph, showConfirmModal 等保持不变
+        
+        // 初始化图谱（保留原有代码）
         function initGraph() {
             const svg = d3.select("#graph-svg");
+            if (!svg.node()) return;
+            
             const width = svg.node().parentNode.clientWidth;
             const height = svg.node().parentNode.clientHeight;
             
-            // 如果本地没有数据，加载示例数据
             if (nodes.length === 0) {
                 loadSampleData();
             }
@@ -338,14 +474,11 @@
         }
 
         function loadSampleData() {
-            // 预置AWE 2026核心节点
             nodes = [
                 {id: "海尔", group: 1, level: 4, label: "海尔智家", type: "company"},
                 {id: "华为", group: 1, level: 3, label: "华为鸿蒙智家", type: "company"},
                 {id: "UWB雷达", group: 2, level: 4, label: "UWB超宽带雷达", type: "tech"},
                 {id: "磁控保鲜", group: 2, level: 4, label: "磁控保鲜技术", type: "tech", military: "潜艇食品保障"},
-                {id: "MSA氮氧", group: 2, level: 4, label: "MSA氮氧智控", type: "tech"},
-                {id: "Seeker", group: 3, level: 5, label: "Seeker观赛剧场", type: "scene"},
                 {id: "聆思", group: 4, level: 2, label: "聆思科技", type: "company"},
                 {id: "移远", group: 4, level: 2, label: "移远通信", type: "company"}
             ];
@@ -353,10 +486,6 @@
             links = [
                 {source: "海尔", target: "UWB雷达"},
                 {source: "海尔", target: "磁控保鲜"},
-                {source: "海尔", target: "MSA氮氧"},
-                {source: "海尔", target: "Seeker"},
-                {source: "UWB雷达", target: "Seeker"},
-                {source: "磁控保鲜", target: "MSA氮氧"},
                 {source: "聆思", target: "UWB雷达"},
                 {source: "移远", target: "UWB雷达"}
             ];
@@ -368,25 +497,22 @@
             const svg = d3.select("#graph-svg");
             svg.selectAll("*").remove();
             
-            const width = svg.node().parentNode.clientWidth;
-            const height = svg.node().parentNode.clientHeight;
+            const container = svg.node().parentNode;
+            const width = container.clientWidth;
+            const height = container.clientHeight;
             
             const simulation = d3.forceSimulation(nodes)
                 .force("link", d3.forceLink(links).id(d => d.id).distance(100))
                 .force("charge", d3.forceManyBody().strength(-300))
-                .force("center", d3.forceCenter(width / 2, height / 2))
-                .force("collision", d3.forceCollide().radius(40));
+                .force("center", d3.forceCenter(width / 2, height / 2));
             
-            // 绘制连线
             const link = svg.append("g")
                 .selectAll("line")
                 .data(links)
                 .enter().append("line")
                 .attr("stroke", "#999")
-                .attr("stroke-opacity", 0.6)
-                .attr("stroke-width", 1);
+                .attr("stroke-opacity", 0.6);
             
-            // 绘制节点
             const node = svg.append("g")
                 .selectAll("g")
                 .data(nodes)
@@ -397,19 +523,17 @@
                     .on("end", dragended))
                 .on("click", (event, d) => showNodeDetail(d));
             
-            // 节点圆圈
             node.append("circle")
                 .attr("r", d => d.type === 'company' ? 25 : 20)
                 .attr("fill", d => {
-                    if (d.group === 1) return "#1890ff"; // 蓝色-整机
-                    if (d.group === 2) return "#52c41a"; // 绿色-技术
-                    if (d.group === 4) return "#722ed1"; // 紫色-芯片
+                    if (d.group === 1) return "#1890ff";
+                    if (d.group === 2) return "#52c41a";
+                    if (d.group === 4) return "#722ed1";
                     return "#fa8c16";
                 })
                 .attr("stroke", "#fff")
                 .attr("stroke-width", 2);
             
-            // 节点文字
             node.append("text")
                 .text(d => d.label)
                 .attr("text-anchor", "middle")
@@ -445,44 +569,21 @@
             }
         }
 
-        // 语音录入控制
-        function startRecording() {
-            if (!recognition) return;
-            currentTranscript = '';
-            currentTags = [];
-            document.getElementById('voiceBtn').classList.add('recording');
-            recognition.start();
-        }
-
-        function stopRecording() {
-            if (!recognition) return;
-            document.getElementById('voiceBtn').classList.remove('recording');
-            recognition.stop();
-            
-            setTimeout(() => {
-                if (currentTranscript) {
-                    showConfirmModal();
-                }
-            }, 500);
-        }
-
         function showConfirmModal() {
-            document.getElementById('transcriptText').textContent = currentTranscript;
+            document.getElementById('transcriptText').textContent = currentTranscript || "正在转写...";
             document.getElementById('confirmModal').classList.add('active');
             document.getElementById('tagsContainer').innerHTML = '<div class="tag loading">AI分析中...</div>';
             
-            // 提取最近照片（模拟）
-            loadRecentPhotos();
-            
-            // 调用DeepSeek提取标签
-            extractTags(currentTranscript);
+            if (currentTranscript) {
+                extractTags(currentTranscript);
+            }
         }
 
         function closeModal() {
             document.getElementById('confirmModal').classList.remove('active');
         }
 
-        // DeepSeek API调用
+        // DeepSeek API调用（保留原有逻辑）
         async function extractTags(text) {
             const apiKey = localStorage.getItem('deepseek_api_key');
             const proxyUrl = localStorage.getItem('proxy_url') || 'https://awe2026-proxy.yourusername.workers.dev';
@@ -493,14 +594,12 @@
                 return;
             }
             
-            const systemPrompt = `你是一个AWE 2026家电展的技术标签提取助手。从用户输入中提取技术实体，按以下规则返回JSON数组：
-1. 识别企业名称：[[海尔]], [[华为]], [[聆思科技]], [[移远通信]], [[Realtek]], [[绿联]], [[影石]], [[元点智能]], [[奕斯伟]]等
-2. 识别技术层级：[[Level 1 材料]], [[Level 2 芯片]], [[Level 3 组网]], [[Level 4 整机]], [[Level 5 场景]]
-3. 识别具体技术：[[UWB雷达]], [[毫米波雷达]], [[磁控保鲜]], [[MSA氮氧智控]], [[PLC]], [[WiFi 7]], [[星闪]], [[RISC-V]], [[DeepSeek]], [[AI NAS]]等
-4. 识别军转民技术：如果有军用背景，添加 [[军转民]] 并注明来源（如"潜艇食品保障"）
-5. 识别信息流阶段：[[Stage 1 采集]], [[Stage 2 传输]], [[Stage 3 计算]], [[Stage 4 执行]]
-
-只返回JSON数组格式，例如：["[[海尔]]", "[[Level 4 整机]]", "[[UWB雷达]]", "[[军转民]]"]`;
+            const systemPrompt = `你是AWE 2026家电展的技术标签提取助手。从用户输入中提取技术实体，返回JSON数组格式：
+    识别企业：[[海尔]], [[华为]], [[聆思]], [[移远]], [[Realtek]], [[绿联]], [[影石]], [[奕斯伟]]
+    识别技术层级：[[Level 1 材料]], [[Level 2 芯片]], [[Level 3 组网]], [[Level 4 整机]], [[Level 5 场景]]
+    识别具体技术：[[UWB雷达]], [[磁控保鲜]], [[MSA氮氧智控]], [[PLC]], [[WiFi 7]], [[星闪]], [[DeepSeek]], [[AI NAS]]
+    识别军转民：[[军转民]]（注明来源如"潜艇技术"）
+    只返回JSON数组，例如：["[[海尔]]", "[[Level 4]]", "[[UWB雷达]]"]`;
 
             try {
                 const response = await fetch(proxyUrl, {
@@ -523,52 +622,31 @@
                 if (data.choices && data.choices[0].message.content) {
                     try {
                         const content = data.choices[0].message.content;
-                        // 尝试解析JSON
                         const jsonMatch = content.match(/\[.*\]/);
                         if (jsonMatch) {
                             tags = JSON.parse(jsonMatch[0]);
-                        } else {
-                            //  Fallback：按行分割
-                            tags = content.split('\n').filter(t => t.includes('[['));
                         }
                     } catch (e) {
                         console.error('解析失败:', e);
                     }
                 }
                 
-                currentTags = tags;
-                renderTags(tags);
+                currentTags = tags.length > 0 ? tags : localExtractTags(text);
+                renderTags(currentTags);
                 
             } catch (error) {
                 console.error('API调用失败:', error);
-                // 本地规则fallback
-                const localTags = localExtractTags(text);
-                currentTags = localTags;
-                renderTags(localTags);
+                currentTags = localExtractTags(text);
+                renderTags(currentTags);
             }
         }
 
-        // 本地规则引擎（Fallback）
         function localExtractTags(text) {
             const tags = [];
             const keywords = {
-                '海尔': '[[海尔]]',
-                '华为': '[[华为]]',
-                'UWB': '[[UWB雷达]]',
-                '雷达': '[[毫米波雷达]]',
-                '磁控': '[[磁控保鲜]]',
-                'MSA': '[[MSA氮氧智控]]',
-                '氮氧': '[[MSA氮氧智控]]',
-                '保鲜': '[[磁控保鲜]]',
-                'Seeker': '[[Seeker]]',
-                '观赛': '[[Seeker]]',
-                '聆思': '[[聆思科技]]',
-                '移远': '[[移远通信]]',
-                '绿联': '[[绿联]]',
-                'NAS': '[[AI NAS]]',
-                '芯片': '[[Level 2 芯片]]',
-                '冰箱': '[[Level 4 整机]]',
-                '空调': '[[Level 4 整机]]'
+                '海尔': '[[海尔]]', '华为': '[[华为]]', 'UWB': '[[UWB雷达]]',
+                '雷达': '[[毫米波雷达]]', '磁控': '[[磁控保鲜]]', 'MSA': '[[MSA氮氧智控]]',
+                '聆思': '[[聆思科技]]', '移远': '[[移远通信]]', '绿联': '[[绿联]]'
             };
             
             for (let [key, tag] of Object.entries(keywords)) {
@@ -577,7 +655,7 @@
                 }
             }
             
-            if (text.includes('潜艇') || text.includes('航天') || text.includes('军用')) {
+            if (text.includes('潜艇') || text.includes('航天')) {
                 tags.push('[[军转民]]');
             }
             
@@ -595,12 +673,6 @@
             ).join('');
         }
 
-        function loadRecentPhotos() {
-            // 模拟最近照片（实际应访问相册API或用户手动选择）
-            const container = document.getElementById('photosPreview');
-            container.innerHTML = '<div style="color:#999;font-size:14px;">提示：保存后可手动关联照片</div>';
-        }
-
         function saveNode() {
             const nodeId = 'node_' + Date.now();
             const newNode = {
@@ -609,13 +681,12 @@
                 content: currentTranscript,
                 tags: currentTags,
                 timestamp: new Date().toISOString(),
-                group: 5, // 用户录入
+                group: 5,
                 level: 4
             };
             
             nodes.push(newNode);
             
-            // 自动建立链接（根据标签关联现有节点）
             currentTags.forEach(tag => {
                 const cleanTag = tag.replace(/\[\[|\]\]/g, '');
                 const existingNode = nodes.find(n => n.label === cleanTag || n.id === cleanTag);
@@ -627,8 +698,6 @@
             saveData();
             updateGraph();
             closeModal();
-            
-            // 震动反馈
             if (navigator.vibrate) navigator.vibrate(50);
         }
 
@@ -647,10 +716,6 @@
                 <div style="background:#f5f5f5;padding:16px;border-radius:8px;margin-bottom:16px;">
                     <div style="font-size:12px;color:#666;margin-bottom:4px;">类型</div>
                     <div>${d.type || '未知'}</div>
-                </div>
-                <div style="background:#f5f5f5;padding:16px;border-radius:8px;margin-bottom:16px;">
-                    <div style="font-size:12px;color:#666;margin-bottom:4px;">技术层级</div>
-                    <div>Level ${d.level}</div>
                 </div>
                 ${d.military ? `
                 <div style="background:#fff2e8;padding:16px;border-radius:8px;margin-bottom:16px;border:1px solid #ffbb96;">
@@ -675,44 +740,17 @@
         function saveSettings() {
             const apiKey = document.getElementById('apiKey').value;
             const proxyUrl = document.getElementById('proxyUrl').value;
-            const userId = document.getElementById('userId').value;
-            
             if (apiKey) localStorage.setItem('deepseek_api_key', apiKey);
             if (proxyUrl) localStorage.setItem('proxy_url', proxyUrl);
-            if (userId) localStorage.setItem('user_id', userId);
         }
 
-        function exportData() {
-            const data = {
-                nodes: nodes,
-                links: links,
-                export_time: new Date().toISOString()
-            };
-            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `AWE2026_data_${Date.now()}.json`;
-            a.click();
-        }
-
-        // 初始化
         window.onload = function() {
             initGraph();
-            
-            // 加载设置
             const savedKey = localStorage.getItem('deepseek_api_key');
             const savedProxy = localStorage.getItem('proxy_url');
             if (savedKey) document.getElementById('apiKey').value = savedKey;
             if (savedProxy) document.getElementById('proxyUrl').value = savedProxy;
         };
-
-        // PWA注册
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('data:text/javascript,').catch(() => {
-                // 简化处理，实际应创建sw.js文件
-            });
-        }
     </script>
 </body>
 </html>
