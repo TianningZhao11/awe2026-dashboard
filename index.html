@@ -15,7 +15,6 @@
             touch-action: manipulation;
         }
         
-        /* 顶部导航 */
         .header {
             position: fixed;
             top: 0; left: 0; right: 0;
@@ -42,7 +41,6 @@
             justify-content: center;
         }
         
-        /* 图谱容器 */
         #graph-container {
             position: fixed;
             top: 56px; left: 0; right: 0; bottom: 180px;
@@ -50,7 +48,6 @@
             overflow: hidden;
         }
         
-        /* 语音录入区 */
         .voice-panel {
             position: fixed;
             bottom: 0; left: 0; right: 0;
@@ -70,33 +67,38 @@
             background: #ff4d4f;
             border: none;
             color: white;
-            font-size: 24px;
+            font-size: 32px; /* 方块符号更大 */
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(255,77,79,0.3);
-            transition: transform 0.1s;
+            transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
+            position: relative;
         }
         .voice-btn:active { transform: scale(0.95); }
         .voice-btn.recording {
             background: #ff7875;
             animation: pulse 2s infinite;
         }
-
         .voice-btn.recording::after {
             content: '';
             position: absolute;
             width: 100%;
             height: 100%;
             border-radius: 50%;
-            border: 2px solid #ff4d4f;
+            border: 3px solid #ff4d4f;
             animation: ripple 1.5s infinite;
         }
-
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255,77,79,0.4); }
+            70% { box-shadow: 0 0 0 20px rgba(255,77,79,0); }
+            100% { box-shadow: 0 0 0 0 rgba(255,77,79,0); }
+        }
         @keyframes ripple {
             0% { transform: scale(1); opacity: 1; }
-            100% { transform: scale(1.5); opacity: 0; }
+            100% { transform: scale(1.6); opacity: 0; }
         }
         
         .voice-hint {
@@ -105,7 +107,6 @@
             color: #666;
         }
         
-        /* 转写预览模态框 */
         .modal {
             display: none;
             position: fixed;
@@ -153,18 +154,7 @@
             border: 1px solid #91d5ff;
         }
         .tag.loading { opacity: 0.6; }
-        .photos-preview {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
-            overflow-x: auto;
-        }
-        .photo-thumb {
-            width: 80px; height: 80px;
-            border-radius: 8px;
-            object-fit: cover;
-            border: 2px solid #f0f0f0;
-        }
+        
         .action-btns {
             display: flex;
             gap: 12px;
@@ -180,7 +170,6 @@
         .btn-primary { background: #1a1a1a; color: white; }
         .btn-secondary { background: #f5f5f5; color: #666; }
         
-        /* 设置面板 */
         .settings {
             display: none;
             position: fixed;
@@ -207,7 +196,6 @@
             font-size: 16px;
         }
         
-        /* 节点详情侧边栏 */
         .sidebar {
             position: fixed;
             top: 0; right: -100%;
@@ -225,8 +213,6 @@
     </style>
 </head>
 <body>
-
-    <!-- 头部 -->
     <div class="header">
         <h1>AWE 2026 技术图谱</h1>
         <div class="header-actions">
@@ -235,20 +221,15 @@
         </div>
     </div>
 
-    <!-- 图谱容器 -->
     <div id="graph-container">
         <svg id="graph-svg" width="100%" height="100%"></svg>
     </div>
 
-    <!-- 语音面板 -->
     <div class="voice-panel">
-        <button class="voice-btn" id="voiceBtn" ontouchstart="startRecording()" onmousedown="startRecording()" ontouchend="stopRecording()" onmouseup="stopRecording()">
-            🎤
-        </button>
-        <div class="voice-hint">按住说话，自动提取技术标签</div>
+        <button class="voice-btn" id="voiceBtn">🎤</button>
+        <div class="voice-hint" id="voiceHint">点击开始录音</div>
     </div>
 
-    <!-- 转写确认模态框 -->
     <div class="modal" id="confirmModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -257,7 +238,6 @@
             </div>
             <div class="transcript-box" id="transcriptText">正在转写...</div>
             <div class="tags-container" id="tagsContainer"></div>
-            <div class="photos-preview" id="photosPreview"></div>
             <div class="action-btns">
                 <button class="btn btn-secondary" onclick="closeModal()">取消</button>
                 <button class="btn btn-primary" onclick="saveNode()">保存到图谱</button>
@@ -265,7 +245,6 @@
         </div>
     </div>
 
-    <!-- 设置面板 -->
     <div class="settings" id="settingsPanel">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:30px;">
             <h2>设置</h2>
@@ -277,34 +256,26 @@
             <small style="color:#999;display:block;margin-top:4px;">仅保存在本地浏览器</small>
         </div>
         <div class="input-group">
-            <label>代理地址（可选）</label>
+            <label>代理地址</label>
             <input type="text" id="proxyUrl" placeholder="https://your-worker.workers.dev" onchange="saveSettings()">
-            <small style="color:#999;display:block;margin-top:4px;">默认使用公共代理</small>
-        </div>
-        <div class="input-group">
-            <label>用户标识</label>
-            <input type="text" id="userId" placeholder="AWE2026-User" onchange="saveSettings()">
+            <small style="color:#999;display:block;margin-top:4px;">Cloudflare Worker地址</small>
         </div>
         <button class="btn btn-primary" onclick="toggleSettings()" style="margin-top:20px;">保存并关闭</button>
     </div>
 
-    <!-- 节点详情侧边栏 -->
-    <div class="sidebar" id="nodeSidebar">
-        <!-- 动态填充 -->
-    </div>
+    <div class="sidebar" id="nodeSidebar"></div>
 
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script>
         // 全局状态
         let nodes = JSON.parse(localStorage.getItem('awe_nodes') || '[]');
         let links = JSON.parse(localStorage.getItem('awe_links') || '[]');
-        let currentRecording = null;
         let currentTranscript = '';
         let currentTags = [];
         let recognition = null;
-        let isRecording = false; // 新增状态锁
-        
-        // 修复后的语音识别初始化
+        let isRecording = false;
+
+        // 初始化语音识别（简化版）
         function initSpeechRecognition() {
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
                 alert('您的浏览器不支持语音识别');
@@ -314,23 +285,30 @@
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             const rec = new SpeechRecognition();
             rec.lang = 'zh-CN';
-            rec.continuous = true; // 改为true，防止iOS过早结束
+            rec.continuous = true;
             rec.interimResults = true;
-            rec.maxAlternatives = 1;
             
             let finalTranscript = '';
+            let interimTranscript = '';
             
             rec.onstart = () => {
                 console.log('录音开始');
                 isRecording = true;
                 finalTranscript = '';
-                document.getElementById('voiceBtn').classList.add('recording');
-                // 震动反馈
+                interimTranscript = '';
+                
+                const btn = document.getElementById('voiceBtn');
+                btn.classList.add('recording');
+                btn.innerHTML = '◼';
+                
+                document.getElementById('voiceHint').textContent = '正在聆听，点击方块停止';
+                document.getElementById('transcriptText').textContent = "正在聆听...";
+                
                 if (navigator.vibrate) navigator.vibrate(50);
             };
             
             rec.onresult = (event) => {
-                let interimTranscript = '';
+                interimTranscript = '';
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
@@ -339,198 +317,73 @@
                         interimTranscript += transcript;
                     }
                 }
-                // 实时显示（包括临时结果）
-                currentTranscript = finalTranscript + interimTranscript;
-                if (document.getElementById('transcriptText')) {
-                    document.getElementById('transcriptText').textContent = currentTranscript;
-                }
+                const displayText = finalTranscript + interimTranscript;
+                document.getElementById('transcriptText').textContent = displayText || "正在聆听...";
             };
             
             rec.onerror = (event) => {
-                console.error('录音错误:', event.error);
+                console.log('录音错误:', event.error);
+                // 忽略 aborted 错误（用户停止或iOS自动中断）
+                if (event.error === 'aborted' && !isRecording) return;
+                
                 if (event.error === 'not-allowed') {
                     alert('请允许麦克风权限');
-                } else if (event.error === 'no-speech') {
-                    // 没检测到语音，不报错，继续尝试
-                    console.log('未检测到语音');
-                } else {
-                    alert('语音识别错误: ' + event.error);
+                    stopRecording();
                 }
-                stopRecordingUI();
             };
             
             rec.onend = () => {
                 console.log('录音结束');
-                // iOS可能会自动结束，如果用户还在按住，尝试重启
-                if (isRecording && document.getElementById('voiceBtn').classList.contains('recording')) {
-                    try {
-                        rec.start(); // 自动重启
-                    } catch(e) {
-                        stopRecordingUI();
-                    }
+                // 如果是异常结束且还在录音状态，尝试重启
+                if (isRecording) {
+                    setTimeout(() => {
+                        try { rec.start(); } catch(e) { stopRecording(); }
+                    }, 100);
                 } else {
-                    stopRecordingUI();
+                    processRecordingResult();
                 }
             };
             
             return rec;
         }
 
-        recognition = initSpeechRecognition();
-
-        // 修复后的录音控制（防止事件冲突）
-
-        // 简化的 Toggle 模式录音控制（iOS友好）
-        let recordingTimer = null;
-        let silenceTimer = null;
-
-        function initVoiceControl() {
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                alert('您的浏览器不支持语音识别');
-                return;
-            }
-            
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
-            recognition.lang = 'zh-CN';
-            recognition.continuous = true;
-            recognition.interimResults = true;
-            
-            let finalTranscript = '';
-            let interimTranscript = '';
-            
-            recognition.onstart = () => {
-                console.log('录音开始');
-                isRecording = true;
-                finalTranscript = '';
-                interimTranscript = '';
-                
-                // UI更新：红色常亮+波纹动画
-                const btn = document.getElementById('voiceBtn');
-                btn.classList.add('recording');
-                btn.innerHTML = '◼'; // 方块表示停止
-                
-                // 震动反馈
-                if (navigator.vibrate) navigator.vibrate(50);
-                
-                // 显示实时转写区域
-                document.getElementById('transcriptText').textContent = "正在聆听...";
-                
-                // 5秒无语音自动提醒（但不停止）
-                silenceTimer = setTimeout(() => {
-                    if (isRecording && !finalTranscript && !interimTranscript) {
-                        document.getElementById('transcriptText').textContent = "未检测到语音，请说话或点击停止...";
-                    }
-                }, 5000);
-            };
-            
-            recognition.onresult = (event) => {
-                interimTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; i++) {
-                    const transcript = event.results[i][0].transcript;
-                    if (event.results[i].isFinal) {
-                        finalTranscript += transcript;
-                    } else {
-                        interimTranscript += transcript;
-                    }
-                }
-                
-                // 实时更新显示
-                const displayText = finalTranscript + interimTranscript;
-                document.getElementById('transcriptText').textContent = displayText || "正在聆听...";
-                
-                // 有语音时清除静音提醒
-                if (silenceTimer) clearTimeout(silenceTimer);
-            };
-            
-            recognition.onerror = (event) => {
-                console.log('录音错误:', event.error);
-                
-                // iOS会自动aborted，如果是用户主动停止则忽略
-                if (event.error === 'aborted' && !isRecording) {
-                    return; // 正常停止，不处理
-                }
-                
-                if (event.error === 'not-allowed') {
-                    alert('请允许麦克风权限');
-                    stopRecording();
-                } else if (event.error === 'network') {
-                    alert('网络错误，请检查连接');
-                    stopRecording();
-                }
-                // 其他错误（如no-speech）不停止，让继续录音
-            };
-            
-            recognition.onend = () => {
-                console.log('录音结束');
-                
-                // 如果是异常结束（不是用户点击停止），且还在录音状态，尝试重启
-                if (isRecording) {
-                    console.log('意外中断，尝试重启...');
-                    setTimeout(() => {
-                        try {
-                            recognition.start();
-                        } catch(e) {
-                            console.error('重启失败:', e);
-                            stopRecording();
-                        }
-                    }, 100);
-                } else {
-                    // 用户主动停止，进入确认流程
-                    processRecordingResult();
-                }
-            };
-        }
-
-        function toggleRecording(e) {
-            if (e) {
-                e.preventDefault();
-                e.stopPropagation();
-            }
-            
+        // Toggle 录音
+        function toggleRecording() {
             if (!recognition) {
-                initVoiceControl();
+                recognition = initSpeechRecognition();
+                if (!recognition) return;
             }
             
             if (!isRecording) {
-                // 开始录音
+                // 开始
                 try {
                     recognition.start();
                 } catch(err) {
-                    // 如果已经在运行，先停止再开始
-                    recognition.stop();
+                    // 如果已经在运行，先停再开
+                    try { recognition.stop(); } catch(e){}
                     setTimeout(() => recognition.start(), 200);
                 }
             } else {
-                // 停止录音
+                // 停止
                 stopRecording();
             }
         }
 
         function stopRecording() {
             isRecording = false;
+            try { recognition.stop(); } catch(err) {}
             
-            if (silenceTimer) clearTimeout(silenceTimer);
-            
-            try {
-                recognition.stop();
-            } catch(err) {
-                console.log('停止录音:', err);
-            }
-            
-            // UI更新
             const btn = document.getElementById('voiceBtn');
             btn.classList.remove('recording');
             btn.innerHTML = '🎤';
+            document.getElementById('voiceHint').textContent = '点击开始录音';
             
             if (navigator.vibrate) navigator.vibrate([30, 50]);
         }
 
         function processRecordingResult() {
             const text = document.getElementById('transcriptText').textContent;
-            
-            // 过滤掉提示文字
-            if (text && text !== "正在聆听..." && text !== "未检测到语音，请说话或点击停止..." && text.length > 0) {
+            if (text && text !== "正在聆听..." && text.length > 0) {
                 currentTranscript = text;
                 showConfirmModal();
             } else {
@@ -538,32 +391,17 @@
             }
         }
 
-        // 绑定事件（单击即可）
-        const voiceBtn = document.getElementById('voiceBtn');
-        if (voiceBtn) {
-            voiceBtn.addEventListener('click', toggleRecording);
-            voiceBtn.addEventListener('touchstart', (e) => e.preventDefault()); // 防止iOS双击缩放
-        }
+        // 绑定事件（仅此一处，移除HTML中的onclick）
+        document.getElementById('voiceBtn').addEventListener('click', toggleRecording);
 
-        // 同时更新CSS让按钮更明显是toggle
-
-
-
-        // 其他原有函数保持不变...
-        // initGraph, updateGraph, showConfirmModal 等保持不变
-        
-        // 初始化图谱（保留原有代码）
+        // 其他函数保持不变...
         function initGraph() {
             const svg = d3.select("#graph-svg");
             if (!svg.node()) return;
             
-            const width = svg.node().parentNode.clientWidth;
-            const height = svg.node().parentNode.clientHeight;
-            
             if (nodes.length === 0) {
                 loadSampleData();
             }
-            
             updateGraph();
         }
 
@@ -612,9 +450,17 @@
                 .data(nodes)
                 .enter().append("g")
                 .call(d3.drag()
-                    .on("start", dragstarted)
-                    .on("drag", dragged)
-                    .on("end", dragended))
+                    .on("start", (event, d) => {
+                        if (!event.active) simulation.alphaTarget(0.3).restart();
+                        d.fx = d.x; d.fy = d.y;
+                    })
+                    .on("drag", (event, d) => {
+                        d.fx = event.x; d.fy = event.y;
+                    })
+                    .on("end", (event, d) => {
+                        if (!event.active) simulation.alphaTarget(0);
+                        d.fx = null; d.fy = null;
+                    }))
                 .on("click", (event, d) => showNodeDetail(d));
             
             node.append("circle")
@@ -641,26 +487,8 @@
                     .attr("y1", d => d.source.y)
                     .attr("x2", d => d.target.x)
                     .attr("y2", d => d.target.y);
-                
                 node.attr("transform", d => `translate(${d.x},${d.y})`);
             });
-            
-            function dragstarted(event, d) {
-                if (!event.active) simulation.alphaTarget(0.3).restart();
-                d.fx = d.x;
-                d.fy = d.y;
-            }
-            
-            function dragged(event, d) {
-                d.fx = event.x;
-                d.fy = event.y;
-            }
-            
-            function dragended(event, d) {
-                if (!event.active) simulation.alphaTarget(0);
-                d.fx = null;
-                d.fy = null;
-            }
         }
 
         function showConfirmModal() {
@@ -668,16 +496,13 @@
             document.getElementById('confirmModal').classList.add('active');
             document.getElementById('tagsContainer').innerHTML = '<div class="tag loading">AI分析中...</div>';
             
-            if (currentTranscript) {
-                extractTags(currentTranscript);
-            }
+            if (currentTranscript) extractTags(currentTranscript);
         }
 
         function closeModal() {
             document.getElementById('confirmModal').classList.remove('active');
         }
 
-        // DeepSeek API调用（保留原有逻辑）
         async function extractTags(text) {
             const apiKey = localStorage.getItem('deepseek_api_key');
             const proxyUrl = localStorage.getItem('proxy_url') || 'https://awe2026-proxy.yourusername.workers.dev';
@@ -689,11 +514,11 @@
             }
             
             const systemPrompt = `你是AWE 2026家电展的技术标签提取助手。从用户输入中提取技术实体，返回JSON数组格式：
-    识别企业：[[海尔]], [[华为]], [[聆思]], [[移远]], [[Realtek]], [[绿联]], [[影石]], [[奕斯伟]]
-    识别技术层级：[[Level 1 材料]], [[Level 2 芯片]], [[Level 3 组网]], [[Level 4 整机]], [[Level 5 场景]]
-    识别具体技术：[[UWB雷达]], [[磁控保鲜]], [[MSA氮氧智控]], [[PLC]], [[WiFi 7]], [[星闪]], [[DeepSeek]], [[AI NAS]]
-    识别军转民：[[军转民]]（注明来源如"潜艇技术"）
-    只返回JSON数组，例如：["[[海尔]]", "[[Level 4]]", "[[UWB雷达]]"]`;
+识别企业：[[海尔]], [[华为]], [[聆思]], [[移远]], [[Realtek]], [[绿联]], [[影石]], [[奕斯伟]]
+识别技术层级：[[Level 1 材料]], [[Level 2 芯片]], [[Level 3 组网]], [[Level 4 整机]], [[Level 5 场景]]
+识别具体技术：[[UWB雷达]], [[磁控保鲜]], [[MSA氮氧智控]], [[PLC]], [[WiFi 7]], [[星闪]], [[DeepSeek]], [[AI NAS]]
+识别军转民：[[军转民]]（注明来源如"潜艇技术"）
+只返回JSON数组，例如：["[[海尔]]", "[[Level 4]]", "[[UWB雷达]]"]`;
 
             try {
                 const response = await fetch(proxyUrl, {
@@ -717,19 +542,14 @@
                     try {
                         const content = data.choices[0].message.content;
                         const jsonMatch = content.match(/\[.*\]/);
-                        if (jsonMatch) {
-                            tags = JSON.parse(jsonMatch[0]);
-                        }
-                    } catch (e) {
-                        console.error('解析失败:', e);
-                    }
+                        if (jsonMatch) tags = JSON.parse(jsonMatch[0]);
+                    } catch (e) {}
                 }
                 
                 currentTags = tags.length > 0 ? tags : localExtractTags(text);
                 renderTags(currentTags);
                 
             } catch (error) {
-                console.error('API调用失败:', error);
                 currentTags = localExtractTags(text);
                 renderTags(currentTags);
             }
@@ -744,15 +564,9 @@
             };
             
             for (let [key, tag] of Object.entries(keywords)) {
-                if (text.includes(key) && !tags.includes(tag)) {
-                    tags.push(tag);
-                }
+                if (text.includes(key) && !tags.includes(tag)) tags.push(tag);
             }
-            
-            if (text.includes('潜艇') || text.includes('航天')) {
-                tags.push('[[军转民]]');
-            }
-            
+            if (text.includes('潜艇') || text.includes('航天')) tags.push('[[军转民]]');
             return tags;
         }
 
@@ -838,6 +652,17 @@
             if (proxyUrl) localStorage.setItem('proxy_url', proxyUrl);
         }
 
+        function exportData() {
+            const data = { nodes, links, export_time: new Date().toISOString() };
+            const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `AWE2026_data_${Date.now()}.json`;
+            a.click();
+        }
+
+        // 初始化
         window.onload = function() {
             initGraph();
             const savedKey = localStorage.getItem('deepseek_api_key');
