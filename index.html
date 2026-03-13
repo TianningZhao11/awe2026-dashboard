@@ -39,11 +39,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 18px;
         }
         
         #graph-container {
             position: fixed;
-            top: 56px; left: 0; right: 0; bottom: 180px;
+            top: 56px; left: 0; right: 0; bottom: 200px;
             background: #fafafa;
             overflow: hidden;
         }
@@ -51,23 +52,23 @@
         .voice-panel {
             position: fixed;
             bottom: 0; left: 0; right: 0;
-            height: 180px;
+            height: 200px;
             background: #ffffff;
             border-top: 1px solid #f0f0f0;
-            padding: 20px;
+            padding: 16px 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            gap: 12px;
         }
         
         .voice-btn {
-            width: 80px; height: 80px;
+            width: 72px; height: 72px;
             border-radius: 50%;
             background: #ff4d4f;
             border: none;
             color: white;
-            font-size: 32px; /* 方块符号更大 */
+            font-size: 28px;
             cursor: pointer;
             box-shadow: 0 4px 12px rgba(255,77,79,0.3);
             transition: all 0.2s;
@@ -75,6 +76,7 @@
             align-items: center;
             justify-content: center;
             position: relative;
+            flex-shrink: 0;
         }
         .voice-btn:active { transform: scale(0.95); }
         .voice-btn.recording {
@@ -84,8 +86,7 @@
         .voice-btn.recording::after {
             content: '';
             position: absolute;
-            width: 100%;
-            height: 100%;
+            width: 100%; height: 100%;
             border-radius: 50%;
             border: 3px solid #ff4d4f;
             animation: ripple 1.5s infinite;
@@ -102,11 +103,31 @@
         }
         
         .voice-hint {
-            margin-top: 12px;
-            font-size: 14px;
+            font-size: 13px;
             color: #666;
+            text-align: center;
         }
         
+        .quick-actions {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            width: 100%;
+            justify-content: center;
+            padding: 0 10px;
+        }
+        .quick-tag {
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            color: #666;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        .quick-tag:active { background: #e0e0e0; }
+
         .modal {
             display: none;
             position: fixed;
@@ -119,9 +140,9 @@
         .modal-content {
             background: white;
             width: 100%;
-            max-height: 70vh;
+            max-height: 80vh;
             border-radius: 20px 20px 0 0;
-            padding: 24px;
+            padding: 20px;
             overflow-y: auto;
         }
         .modal-header {
@@ -137,27 +158,111 @@
             font-size: 16px;
             line-height: 1.6;
             margin-bottom: 16px;
-            min-height: 60px;
+            min-height: 80px;
+            border: 2px solid transparent;
+            outline: none;
         }
+        .transcript-box:focus {
+            border-color: #1890ff;
+            background: #fff;
+        }
+        .edit-hint {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 8px;
+        }
+        
+        .photo-section {
+            margin-bottom: 16px;
+        }
+        .photo-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .photos-grid {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+        }
+        .photo-item {
+            position: relative;
+            width: 80px; height: 80px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+        .photo-item.selected {
+            border-color: #1890ff;
+            box-shadow: 0 0 0 2px rgba(24,144,255,0.2);
+        }
+        .photo-item img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+        }
+        .photo-add {
+            width: 80px; height: 80px;
+            border: 2px dashed #d0d0d0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #999;
+            flex-shrink: 0;
+            cursor: pointer;
+            background: #fafafa;
+        }
+        
         .tags-container {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-bottom: 16px;
+            margin-bottom: 20px;
         }
         .tag {
             background: #e6f7ff;
             color: #1890ff;
-            padding: 6px 12px;
+            padding: 6px 14px;
             border-radius: 16px;
             font-size: 13px;
             border: 1px solid #91d5ff;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-        .tag.loading { opacity: 0.6; }
+        .tag .remove {
+            cursor: pointer;
+            opacity: 0.6;
+        }
+        .tag .remove:active { opacity: 1; }
+        .tag-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: 13px;
+            color: #1890ff;
+            width: 80px;
+        }
+        .tag-add {
+            background: #f5f5f5;
+            color: #666;
+            border: 1px dashed #d0d0d0;
+            padding: 6px 14px;
+            border-radius: 16px;
+            font-size: 13px;
+            cursor: pointer;
+        }
         
         .action-btns {
             display: flex;
             gap: 12px;
+            margin-top: 20px;
         }
         .btn {
             flex: 1;
@@ -216,8 +321,8 @@
     <div class="header">
         <h1>AWE 2026 技术图谱</h1>
         <div class="header-actions">
-            <button class="icon-btn" onclick="toggleSettings()">⚙️</button>
-            <button class="icon-btn" onclick="exportData()">📤</button>
+            <button class="icon-btn" onclick="toggleSettings()" title="设置">⚙️</button>
+            <button class="icon-btn" onclick="exportData()" title="导出数据">📤</button>
         </div>
     </div>
 
@@ -227,7 +332,15 @@
 
     <div class="voice-panel">
         <button class="voice-btn" id="voiceBtn">🎤</button>
-        <div class="voice-hint" id="voiceHint">点击开始录音</div>
+        <div class="voice-hint" id="voiceHint">点击开始录音，说完再点一下结束</div>
+        
+        <div class="quick-actions">
+            <div class="quick-tag" onclick="quickAdd('海尔')">海尔</div>
+            <div class="quick-tag" onclick="quickAdd('华为')">华为</div>
+            <div class="quick-tag" onclick="quickAdd('UWB')">UWB</div>
+            <div class="quick-tag" onclick="quickAdd('磁控')">磁控保鲜</div>
+            <div class="quick-tag" onclick="quickAdd('军转民')">军转民</div>
+        </div>
     </div>
 
     <div class="modal" id="confirmModal">
@@ -236,8 +349,24 @@
                 <h3>确认录入</h3>
                 <button onclick="closeModal()" style="background:none;border:none;font-size:20px;">✕</button>
             </div>
-            <div class="transcript-box" id="transcriptText">正在转写...</div>
-            <div class="tags-container" id="tagsContainer"></div>
+            
+            <div class="edit-hint">👇 点击文字可直接编辑</div>
+            <div class="transcript-box" id="transcriptText" contenteditable="true">正在转写...</div>
+            
+            <div class="photo-section">
+                <div class="photo-label">
+                    <span>关联照片（点击选择）</span>
+                    <span style="font-size:12px;color:#999" id="photoCount">0张</span>
+                </div>
+                <div class="photos-grid" id="photosGrid">
+                    <div class="photo-add" onclick="selectPhoto()">+</div>
+                </div>
+            </div>
+            
+            <div class="tags-container" id="tagsContainer">
+                <div class="tag-add" onclick="addManualTag()">+ 添加标签</div>
+            </div>
+            
             <div class="action-btns">
                 <button class="btn btn-secondary" onclick="closeModal()">取消</button>
                 <button class="btn btn-primary" onclick="saveNode()">保存到图谱</button>
@@ -253,12 +382,16 @@
         <div class="input-group">
             <label>DeepSeek API Key</label>
             <input type="password" id="apiKey" placeholder="sk-..." onchange="saveSettings()">
-            <small style="color:#999;display:block;margin-top:4px;">仅保存在本地浏览器</small>
+            <small style="color:#999;display:block;margin-top:4px;">仅保存在本地浏览器，不会上传</small>
         </div>
         <div class="input-group">
-            <label>代理地址</label>
+            <label>代理地址（Cloudflare Worker）</label>
             <input type="text" id="proxyUrl" placeholder="https://your-worker.workers.dev" onchange="saveSettings()">
-            <small style="color:#999;display:block;margin-top:4px;">Cloudflare Worker地址</small>
+            <small style="color:#999;display:block;margin-top:4px;">没有可不填，使用默认代理</small>
+        </div>
+        <div class="input-group">
+            <label>用户标识</label>
+            <input type="text" id="userId" placeholder="AWE2026-User" onchange="saveSettings()">
         </div>
         <button class="btn btn-primary" onclick="toggleSettings()" style="margin-top:20px;">保存并关闭</button>
     </div>
@@ -272,10 +405,11 @@
         let links = JSON.parse(localStorage.getItem('awe_links') || '[]');
         let currentTranscript = '';
         let currentTags = [];
+        let currentPhotos = [];
         let recognition = null;
         let isRecording = false;
 
-        // 初始化语音识别（简化版）
+        // 初始化语音识别
         function initSpeechRecognition() {
             if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
                 alert('您的浏览器不支持语音识别');
@@ -292,7 +426,6 @@
             let interimTranscript = '';
             
             rec.onstart = () => {
-                console.log('录音开始');
                 isRecording = true;
                 finalTranscript = '';
                 interimTranscript = '';
@@ -323,9 +456,7 @@
             
             rec.onerror = (event) => {
                 console.log('录音错误:', event.error);
-                // 忽略 aborted 错误（用户停止或iOS自动中断）
                 if (event.error === 'aborted' && !isRecording) return;
-                
                 if (event.error === 'not-allowed') {
                     alert('请允许麦克风权限');
                     stopRecording();
@@ -333,8 +464,6 @@
             };
             
             rec.onend = () => {
-                console.log('录音结束');
-                // 如果是异常结束且还在录音状态，尝试重启
                 if (isRecording) {
                     setTimeout(() => {
                         try { rec.start(); } catch(e) { stopRecording(); }
@@ -347,7 +476,6 @@
             return rec;
         }
 
-        // Toggle 录音
         function toggleRecording() {
             if (!recognition) {
                 recognition = initSpeechRecognition();
@@ -355,16 +483,13 @@
             }
             
             if (!isRecording) {
-                // 开始
                 try {
                     recognition.start();
                 } catch(err) {
-                    // 如果已经在运行，先停再开
                     try { recognition.stop(); } catch(e){}
                     setTimeout(() => recognition.start(), 200);
                 }
             } else {
-                // 停止
                 stopRecording();
             }
         }
@@ -376,7 +501,7 @@
             const btn = document.getElementById('voiceBtn');
             btn.classList.remove('recording');
             btn.innerHTML = '🎤';
-            document.getElementById('voiceHint').textContent = '点击开始录音';
+            document.getElementById('voiceHint').textContent = '点击开始录音，说完再点一下结束';
             
             if (navigator.vibrate) navigator.vibrate([30, 50]);
         }
@@ -385,131 +510,127 @@
             const text = document.getElementById('transcriptText').textContent;
             if (text && text !== "正在聆听..." && text.length > 0) {
                 currentTranscript = text;
+                currentPhotos = [];
                 showConfirmModal();
-            } else {
-                alert('未检测到语音，请重试');
             }
         }
 
-        // 绑定事件（仅此一处，移除HTML中的onclick）
+        function quickAdd(keyword) {
+            currentTranscript = keyword;
+            document.getElementById('transcriptText').textContent = keyword;
+            currentPhotos = [];
+            showConfirmModal();
+            extractTags(keyword);
+        }
+
+        // 绑定事件
         document.getElementById('voiceBtn').addEventListener('click', toggleRecording);
 
-        // 其他函数保持不变...
-        function initGraph() {
-            const svg = d3.select("#graph-svg");
-            if (!svg.node()) return;
-            
-            if (nodes.length === 0) {
-                loadSampleData();
-            }
-            updateGraph();
+        // 照片处理
+        function selectPhoto() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.multiple = true;
+            input.onchange = (e) => {
+                const files = Array.from(e.target.files);
+                files.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        currentPhotos.push({
+                            id: 'photo_' + Date.now() + Math.random(),
+                            data: event.target.result,
+                            selected: true
+                        });
+                        renderPhotos();
+                    };
+                    reader.readAsDataURL(file);
+                });
+            };
+            input.click();
         }
 
-        function loadSampleData() {
-            nodes = [
-                {id: "海尔", group: 1, level: 4, label: "海尔智家", type: "company"},
-                {id: "华为", group: 1, level: 3, label: "华为鸿蒙智家", type: "company"},
-                {id: "UWB雷达", group: 2, level: 4, label: "UWB超宽带雷达", type: "tech"},
-                {id: "磁控保鲜", group: 2, level: 4, label: "磁控保鲜技术", type: "tech", military: "潜艇食品保障"},
-                {id: "聆思", group: 4, level: 2, label: "聆思科技", type: "company"},
-                {id: "移远", group: 4, level: 2, label: "移远通信", type: "company"}
-            ];
+        function renderPhotos() {
+            const grid = document.getElementById('photosGrid');
+            const addBtn = grid.querySelector('.photo-add');
             
-            links = [
-                {source: "海尔", target: "UWB雷达"},
-                {source: "海尔", target: "磁控保鲜"},
-                {source: "聆思", target: "UWB雷达"},
-                {source: "移远", target: "UWB雷达"}
-            ];
+            // 清除旧照片（保留添加按钮）
+            Array.from(grid.querySelectorAll('.photo-item')).forEach(el => el.remove());
             
-            saveData();
-        }
-
-        function updateGraph() {
-            const svg = d3.select("#graph-svg");
-            svg.selectAll("*").remove();
-            
-            const container = svg.node().parentNode;
-            const width = container.clientWidth;
-            const height = container.clientHeight;
-            
-            const simulation = d3.forceSimulation(nodes)
-                .force("link", d3.forceLink(links).id(d => d.id).distance(100))
-                .force("charge", d3.forceManyBody().strength(-300))
-                .force("center", d3.forceCenter(width / 2, height / 2));
-            
-            const link = svg.append("g")
-                .selectAll("line")
-                .data(links)
-                .enter().append("line")
-                .attr("stroke", "#999")
-                .attr("stroke-opacity", 0.6);
-            
-            const node = svg.append("g")
-                .selectAll("g")
-                .data(nodes)
-                .enter().append("g")
-                .call(d3.drag()
-                    .on("start", (event, d) => {
-                        if (!event.active) simulation.alphaTarget(0.3).restart();
-                        d.fx = d.x; d.fy = d.y;
-                    })
-                    .on("drag", (event, d) => {
-                        d.fx = event.x; d.fy = event.y;
-                    })
-                    .on("end", (event, d) => {
-                        if (!event.active) simulation.alphaTarget(0);
-                        d.fx = null; d.fy = null;
-                    }))
-                .on("click", (event, d) => showNodeDetail(d));
-            
-            node.append("circle")
-                .attr("r", d => d.type === 'company' ? 25 : 20)
-                .attr("fill", d => {
-                    if (d.group === 1) return "#1890ff";
-                    if (d.group === 2) return "#52c41a";
-                    if (d.group === 4) return "#722ed1";
-                    return "#fa8c16";
-                })
-                .attr("stroke", "#fff")
-                .attr("stroke-width", 2);
-            
-            node.append("text")
-                .text(d => d.label)
-                .attr("text-anchor", "middle")
-                .attr("dy", 35)
-                .attr("font-size", "12px")
-                .attr("fill", "#333");
-            
-            simulation.on("tick", () => {
-                link
-                    .attr("x1", d => d.source.x)
-                    .attr("y1", d => d.source.y)
-                    .attr("x2", d => d.target.x)
-                    .attr("y2", d => d.target.y);
-                node.attr("transform", d => `translate(${d.x},${d.y})`);
+            // 插入照片
+            currentPhotos.forEach((photo, index) => {
+                const div = document.createElement('div');
+                div.className = 'photo-item' + (photo.selected ? ' selected' : '');
+                div.innerHTML = `<img src="${photo.data}" onclick="togglePhoto(${index})">`;
+                grid.insertBefore(div, addBtn);
             });
+            
+            document.getElementById('photoCount').textContent = currentPhotos.length + '张';
+        }
+
+        function togglePhoto(index) {
+            currentPhotos[index].selected = !currentPhotos[index].selected;
+            renderPhotos();
+        }
+
+        // 标签处理
+        function renderTags(tags) {
+            const container = document.getElementById('tagsContainer');
+            container.innerHTML = '';
+            
+            tags.forEach((tag, index) => {
+                const div = document.createElement('div');
+                div.className = 'tag';
+                div.innerHTML = `
+                    ${tag.replace(/\[\[|\]\]/g, '')}
+                    <span class="remove" onclick="removeTag(${index})">✕</span>
+                `;
+                container.appendChild(div);
+            });
+            
+            const addBtn = document.createElement('div');
+            addBtn.className = 'tag-add';
+            addBtn.textContent = '+ 添加标签';
+            addBtn.onclick = addManualTag;
+            container.appendChild(addBtn);
+        }
+
+        function removeTag(index) {
+            currentTags.splice(index, 1);
+            renderTags(currentTags);
+        }
+
+        function addManualTag() {
+            const tag = prompt('输入标签名（不需要[[ ]]）：');
+            if (tag && tag.trim()) {
+                currentTags.push(`[[${tag.trim()}]]`);
+                renderTags(currentTags);
+            }
         }
 
         function showConfirmModal() {
-            document.getElementById('transcriptText').textContent = currentTranscript || "正在转写...";
             document.getElementById('confirmModal').classList.add('active');
             document.getElementById('tagsContainer').innerHTML = '<div class="tag loading">AI分析中...</div>';
+            renderPhotos();
             
-            if (currentTranscript) extractTags(currentTranscript);
+            if (currentTranscript) {
+                extractTags(currentTranscript);
+            }
         }
 
         function closeModal() {
             document.getElementById('confirmModal').classList.remove('active');
+            currentPhotos = [];
+            currentTags = [];
         }
 
         async function extractTags(text) {
             const apiKey = localStorage.getItem('deepseek_api_key');
-            const proxyUrl = localStorage.getItem('proxy_url') || 'https://awe2026-proxy.yourusername.workers.dev';
+            const proxyUrl = localStorage.getItem('proxy_url') || '';
             
             if (!apiKey) {
-                document.getElementById('tagsContainer').innerHTML = 
-                    '<div class="tag" style="background:#ff4d4f;color:white">请先设置API Key</div>';
+                currentTags = localExtractTags(text);
+                renderTags(currentTags);
                 return;
             }
             
@@ -560,34 +681,30 @@
             const keywords = {
                 '海尔': '[[海尔]]', '华为': '[[华为]]', 'UWB': '[[UWB雷达]]',
                 '雷达': '[[毫米波雷达]]', '磁控': '[[磁控保鲜]]', 'MSA': '[[MSA氮氧智控]]',
-                '聆思': '[[聆思科技]]', '移远': '[[移远通信]]', '绿联': '[[绿联]]'
+                '聆思': '[[聆思科技]]', '移远': '[[移远通信]]', '绿联': '[[绿联]]',
+                '影石': '[[影石]]', '奕斯伟': '[[奕斯伟]]', 'Realtek': '[[Realtek]]'
             };
             
             for (let [key, tag] of Object.entries(keywords)) {
                 if (text.includes(key) && !tags.includes(tag)) tags.push(tag);
             }
-            if (text.includes('潜艇') || text.includes('航天')) tags.push('[[军转民]]');
+            if (text.includes('潜艇') || text.includes('航天') || text.includes('军用')) {
+                tags.push('[[军转民]]');
+            }
             return tags;
         }
 
-        function renderTags(tags) {
-            const container = document.getElementById('tagsContainer');
-            if (tags.length === 0) {
-                container.innerHTML = '<div class="tag" style="background:#f5f5f5;color:#999">未识别到标签</div>';
-                return;
-            }
-            container.innerHTML = tags.map(tag => 
-                `<div class="tag">${tag.replace(/\[\[|\]\]/g, '')}</div>`
-            ).join('');
-        }
-
         function saveNode() {
+            // 获取编辑后的文字
+            currentTranscript = document.getElementById('transcriptText').textContent;
+            
             const nodeId = 'node_' + Date.now();
             const newNode = {
                 id: nodeId,
-                label: currentTranscript.substring(0, 20) + '...',
+                label: currentTranscript.substring(0, 20) + (currentTranscript.length > 20 ? '...' : ''),
                 content: currentTranscript,
                 tags: currentTags,
+                photos: currentPhotos.filter(p => p.selected),
                 timestamp: new Date().toISOString(),
                 group: 5,
                 level: 4
@@ -614,29 +731,143 @@
             localStorage.setItem('awe_links', JSON.stringify(links));
         }
 
+        // 图谱可视化
+        function initGraph() {
+            const svg = d3.select("#graph-svg");
+            if (!svg.node()) return;
+            if (nodes.length === 0) loadSampleData();
+            updateGraph();
+        }
+
+        function loadSampleData() {
+            nodes = [
+                {id: "海尔", group: 1, level: 4, label: "海尔智家", type: "company"},
+                {id: "华为", group: 1, level: 3, label: "华为鸿蒙智家", type: "company"},
+                {id: "UWB雷达", group: 2, level: 4, label: "UWB超宽带雷达", type: "tech"},
+                {id: "磁控保鲜", group: 2, level: 4, label: "磁控保鲜技术", type: "tech", military: "潜艇食品保障"},
+                {id: "MSA氮氧", group: 2, level: 4, label: "MSA氮氧智控", type: "tech", military: "气调冷库"},
+                {id: "聆思", group: 4, level: 2, label: "聆思科技", type: "company"},
+                {id: "移远", group: 4, level: 2, label: "移远通信", type: "company"},
+                {id: "绿联", group: 4, level: 2, label: "绿联AI NAS", type: "company"}
+            ];
+            links = [
+                {source: "海尔", target: "UWB雷达"},
+                {source: "海尔", target: "磁控保鲜"},
+                {source: "海尔", target: "MSA氮氧"},
+                {source: "聆思", target: "UWB雷达"},
+                {source: "移远", target: "UWB雷达"},
+                {source: "绿联", target: "AI NAS"}
+            ];
+            saveData();
+        }
+
+        function updateGraph() {
+            const svg = d3.select("#graph-svg");
+            svg.selectAll("*").remove();
+            
+            const container = svg.node().parentNode;
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            const simulation = d3.forceSimulation(nodes)
+                .force("link", d3.forceLink(links).id(d => d.id).distance(120))
+                .force("charge", d3.forceManyBody().strength(-400))
+                .force("center", d3.forceCenter(width / 2, height / 2));
+            
+            const link = svg.append("g")
+                .selectAll("line")
+                .data(links)
+                .enter().append("line")
+                .attr("stroke", "#999")
+                .attr("stroke-opacity", 0.6)
+                .attr("stroke-width", 1.5);
+            
+            const node = svg.append("g")
+                .selectAll("g")
+                .data(nodes)
+                .enter().append("g")
+                .call(d3.drag()
+                    .on("start", (event, d) => {
+                        if (!event.active) simulation.alphaTarget(0.3).restart();
+                        d.fx = d.x; d.fy = d.y;
+                    })
+                    .on("drag", (event, d) => {
+                        d.fx = event.x; d.fy = event.y;
+                    })
+                    .on("end", (event, d) => {
+                        if (!event.active) simulation.alphaTarget(0);
+                        d.fx = null; d.fy = null;
+                    }))
+                .on("click", (event, d) => showNodeDetail(d));
+            
+            node.append("circle")
+                .attr("r", d => d.type === 'company' ? 28 : 22)
+                .attr("fill", d => {
+                    if (d.group === 1) return "#1890ff";
+                    if (d.group === 2) return "#52c41a";
+                    if (d.group === 4) return "#722ed1";
+                    if (d.group === 5) return "#fa8c16";
+                    return "#999";
+                })
+                .attr("stroke", "#fff")
+                .attr("stroke-width", 3);
+            
+            node.append("text")
+                .text(d => d.label)
+                .attr("text-anchor", "middle")
+                .attr("dy", 40)
+                .attr("font-size", "12px")
+                .attr("font-weight", "500")
+                .attr("fill", "#333");
+            
+            simulation.on("tick", () => {
+                link
+                    .attr("x1", d => d.source.x)
+                    .attr("y1", d => d.source.y)
+                    .attr("x2", d => d.target.x)
+                    .attr("y2", d => d.target.y);
+                node.attr("transform", d => `translate(${d.x},${d.y})`);
+            });
+        }
+
         function showNodeDetail(d) {
             const sidebar = document.getElementById('nodeSidebar');
+            let photosHtml = '';
+            if (d.photos && d.photos.length > 0) {
+                photosHtml = `
+                <div style="margin:16px 0;">
+                    <div style="font-size:12px;color:#666;margin-bottom:8px;">关联照片</div>
+                    <div style="display:flex;gap:8px;overflow-x:auto;">
+                        ${d.photos.map(p => `<img src="${p.data}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;">`).join('')}
+                    </div>
+                </div>`;
+            }
+            
             sidebar.innerHTML = `
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
                     <h2>${d.label}</h2>
                     <button onclick="document.getElementById('nodeSidebar').classList.remove('active')" style="background:none;border:none;font-size:24px;">✕</button>
                 </div>
-                <div style="background:#f5f5f5;padding:16px;border-radius:8px;margin-bottom:16px;">
+                <div style="background:#f5f5f5;padding:16px;border-radius:8px;margin-bottom:12px;">
                     <div style="font-size:12px;color:#666;margin-bottom:4px;">类型</div>
-                    <div>${d.type || '未知'}</div>
+                    <div>${d.type || '笔记'}</div>
                 </div>
                 ${d.military ? `
-                <div style="background:#fff2e8;padding:16px;border-radius:8px;margin-bottom:16px;border:1px solid #ffbb96;">
+                <div style="background:#fff2e8;padding:16px;border-radius:8px;margin-bottom:12px;border:1px solid #ffbb96;">
                     <div style="font-size:12px;color:#fa8c16;margin-bottom:4px;">军转民来源</div>
                     <div>${d.military}</div>
                 </div>
                 ` : ''}
                 ${d.content ? `
-                <div style="margin-top:20px;">
-                    <div style="font-size:12px;color:#666;margin-bottom:8px;">原始记录</div>
-                    <div style="background:#f5f5f5;padding:12px;border-radius:8px;font-size:14px;">${d.content}</div>
+                <div style="background:#f5f5f5;padding:16px;border-radius:8px;margin-bottom:12px;">
+                    <div style="font-size:12px;color:#666;margin-bottom:4px;">原始记录</div>
+                    <div style="font-size:14px;line-height:1.6;">${d.content}</div>
                 </div>
                 ` : ''}
+                ${photosHtml}
+                <div style="font-size:12px;color:#999;margin-top:20px;">
+                    录入时间：${new Date(d.timestamp).toLocaleString()}
+                </div>
             `;
             sidebar.classList.add('active');
         }
@@ -648,18 +879,26 @@
         function saveSettings() {
             const apiKey = document.getElementById('apiKey').value;
             const proxyUrl = document.getElementById('proxyUrl').value;
+            const userId = document.getElementById('userId').value;
             if (apiKey) localStorage.setItem('deepseek_api_key', apiKey);
             if (proxyUrl) localStorage.setItem('proxy_url', proxyUrl);
+            if (userId) localStorage.setItem('user_id', userId);
         }
 
         function exportData() {
-            const data = { nodes, links, export_time: new Date().toISOString() };
+            const data = {
+                nodes: nodes,
+                links: links,
+                export_time: new Date().toISOString(),
+                user: localStorage.getItem('user_id') || 'anonymous'
+            };
             const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `AWE2026_data_${Date.now()}.json`;
             a.click();
+            URL.revokeObjectURL(url);
         }
 
         // 初始化
