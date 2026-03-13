@@ -369,91 +369,175 @@
         recognition = initSpeechRecognition();
 
         // 修复后的录音控制（防止事件冲突）
-        const voiceBtn = document.getElementById('voiceBtn');
-        
-        // 统一的事件处理函数
-        function startRecording(e) {
-            if (e) {
-                e.preventDefault(); // 防止默认行为
-                e.stopPropagation(); // 防止冒泡
+
+        // 简化的 Toggle 模式录音控制（iOS友好）
+        let recordingTimer = null;
+        let silenceTimer = null;
+
+        function initVoiceControl() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                alert('您的浏览器不支持语音识别');
+                return;
             }
             
-            if (isRecording || !recognition) return;
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'zh-CN';
+            recognition.continuous = true;
+            recognition.interimResults = true;
             
-            try {
-                recognition.start();
-                currentTranscript = '';
-                // 立即显示转写界面
+            let finalTranscript = '';
+            let interimTranscript = '';
+            
+            recognition.onstart = () => {
+                console.log('录音开始');
+                isRecording = true;
+                finalTranscript = '';
+                interimTranscript = '';
+                
+                // UI更新：红色常亮+波纹动画
+                const btn = document.getElementById('voiceBtn');
+                btn.classList.add('recording');
+                btn.innerHTML = '◼'; // 方块表示停止
+                
+                // 震动反馈
+                if (navigator.vibrate) navigator.vibrate(50);
+                
+                // 显示实时转写区域
                 document.getElementById('transcriptText').textContent = "正在聆听...";
-            } catch (err) {
-                console.error('启动录音失败:', err);
-                // 如果已经在运行，先停止再重启
-                try {
-                    recognition.stop();
-                    setTimeout(() => recognition.start(), 100);
-                } catch(e) {}
-            }
+                
+                // 5秒无语音自动提醒（但不停止）
+                silenceTimer = setTimeout(() => {
+                    if (isRecording && !finalTranscript && !interimTranscript) {
+                        document.getElementById('transcriptText').textContent = "未检测到语音，请说话或点击停止...";
+                    }
+                }, 5000);
+            };
+            
+            recognition.onresult = (event) => {
+                interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                // 实时更新显示
+                const displayText = finalTranscript + interimTranscript;
+                document.getElementById('transcriptText').textContent = displayText || "正在聆听...";
+                
+                // 有语音时清除静音提醒
+                if (silenceTimer) clearTimeout(silenceTimer);
+            };
+            
+            recognition.onerror = (event) => {
+                console.log('录音错误:', event.error);
+                
+                // iOS会自动aborted，如果是用户主动停止则忽略
+                if (event.error === 'aborted' && !isRecording) {
+                    return; // 正常停止，不处理
+                }
+                
+                if (event.error === 'not-allowed') {
+                    alert('请允许麦克风权限');
+                    stopRecording();
+                } else if (event.error === 'network') {
+                    alert('网络错误，请检查连接');
+                    stopRecording();
+                }
+                // 其他错误（如no-speech）不停止，让继续录音
+            };
+            
+            recognition.onend = () => {
+                console.log('录音结束');
+                
+                // 如果是异常结束（不是用户点击停止），且还在录音状态，尝试重启
+                if (isRecording) {
+                    console.log('意外中断，尝试重启...');
+                    setTimeout(() => {
+                        try {
+                            recognition.start();
+                        } catch(e) {
+                            console.error('重启失败:', e);
+                            stopRecording();
+                        }
+                    }, 100);
+                } else {
+                    // 用户主动停止，进入确认流程
+                    processRecordingResult();
+                }
+            };
         }
-        
-        function stopRecording(e) {
+
+        function toggleRecording(e) {
             if (e) {
                 e.preventDefault();
                 e.stopPropagation();
             }
             
-            if (!isRecording) return;
+            if (!recognition) {
+                initVoiceControl();
+            }
+            
+            if (!isRecording) {
+                // 开始录音
+                try {
+                    recognition.start();
+                } catch(err) {
+                    // 如果已经在运行，先停止再开始
+                    recognition.stop();
+                    setTimeout(() => recognition.start(), 200);
+                }
+            } else {
+                // 停止录音
+                stopRecording();
+            }
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            
+            if (silenceTimer) clearTimeout(silenceTimer);
             
             try {
                 recognition.stop();
-            } catch (err) {
-                console.error('停止录音失败:', err);
+            } catch(err) {
+                console.log('停止录音:', err);
             }
             
-            stopRecordingUI();
-            
-            // 延迟显示确认框，确保最终结果已处理
-            setTimeout(() => {
-                if (currentTranscript && currentTranscript.trim().length > 0) {
-                    showConfirmModal();
-                }
-            }, 500);
-        }
-        
-        function stopRecordingUI() {
-            isRecording = false;
+            // UI更新
             const btn = document.getElementById('voiceBtn');
-            if (btn) btn.classList.remove('recording');
-            if (navigator.vibrate) navigator.vibrate([30, 50, 30]); // 结束震动模式
+            btn.classList.remove('recording');
+            btn.innerHTML = '🎤';
+            
+            if (navigator.vibrate) navigator.vibrate([30, 50]);
         }
 
-        // 绑定事件（同时支持触摸和鼠标，但防止重复触发）
-        if (voiceBtn) {
-            // 触摸事件（iOS优先）
-            voiceBtn.addEventListener('touchstart', (e) => {
-                voiceBtn.setAttribute('data-touch-active', 'true');
-                startRecording(e);
-            }, {passive: false});
+        function processRecordingResult() {
+            const text = document.getElementById('transcriptText').textContent;
             
-            voiceBtn.addEventListener('touchend', (e) => {
-                voiceBtn.removeAttribute('data-touch-active');
-                stopRecording(e);
-            }, {passive: false});
-            
-            // 鼠标事件（桌面端）
-            voiceBtn.addEventListener('mousedown', (e) => {
-                // 如果触摸事件已激活，忽略鼠标事件
-                if (voiceBtn.getAttribute('data-touch-active') === 'true') return;
-                startRecording(e);
-            });
-            
-            voiceBtn.addEventListener('mouseup', (e) => {
-                if (voiceBtn.getAttribute('data-touch-active') === 'true') return;
-                stopRecording(e);
-            });
-            
-            // 防止触摸滚动
-            voiceBtn.addEventListener('touchmove', (e) => e.preventDefault(), {passive: false});
+            // 过滤掉提示文字
+            if (text && text !== "正在聆听..." && text !== "未检测到语音，请说话或点击停止..." && text.length > 0) {
+                currentTranscript = text;
+                showConfirmModal();
+            } else {
+                alert('未检测到语音，请重试');
+            }
         }
+
+        // 绑定事件（单击即可）
+        const voiceBtn = document.getElementById('voiceBtn');
+        if (voiceBtn) {
+            voiceBtn.addEventListener('click', toggleRecording);
+            voiceBtn.addEventListener('touchstart', (e) => e.preventDefault()); // 防止iOS双击缩放
+        }
+
+        // 同时更新CSS让按钮更明显是toggle
+
+
 
         // 其他原有函数保持不变...
         // initGraph, updateGraph, showConfirmModal 等保持不变
